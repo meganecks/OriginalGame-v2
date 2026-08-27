@@ -72,6 +72,22 @@ export class HeightMap {
     return this.rng()
   }
 
+  /** targetの周囲scatterRadius以内で、通行可能(impassable/mountainでない)なワールド座標を探す */
+  findPassableWorldPointNear(targetX: number, targetY: number, scatterRadius: number): { x: number; y: number } {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const angle = this.rng() * Math.PI * 2
+      const dist = this.rng() * scatterRadius
+      const x = Math.max(0, Math.min(WORLD_SIZE - 1, targetX + Math.cos(angle) * dist))
+      const y = Math.max(0, Math.min(WORLD_SIZE - 1, targetY + Math.sin(angle) * dist))
+      const kind = this.kindAtWorld(x, y)
+      if (kind === 'impassable' || kind === 'mountain') continue
+      return { x, y }
+    }
+    // target周辺が山岳地帯などで覆われていて見つからなかった場合、targetをそのまま返さず
+    // (山の中に敵が湧いて攻撃不可能になるのを防ぐため)、マップ全体から通行可能な地点を探す。
+    return this.findPassableWorldPoint()
+  }
+
   private clampCell(gx: number, gy: number): [number, number] {
     return [Math.max(0, Math.min(GRID_SIZE - 1, gx)), Math.max(0, Math.min(GRID_SIZE - 1, gy))]
   }

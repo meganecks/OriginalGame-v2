@@ -3,34 +3,27 @@ import { LOCK_INTERVAL_MS } from '../config'
 import type { Enemy } from '../entities/Enemy'
 
 /**
- * ポインタ(マウス/タッチ共通)の長押しでspotted済みの敵を近い順に順次ロックし、
- * リリースでロックした全ターゲットをコールバックに渡す。
+ * spotted済みの敵を常に自動で近い順にロックし続け(容量まで)、
+ * スペースバーでロック中の全ターゲットに向けて一斉発射する。
  */
 export class LockOnSystem {
   private locked: Enemy[] = []
   private readonly markers = new Map<Enemy, Phaser.GameObjects.Arc>()
-  private holding = false
   private msSinceLastLock = 0
   private readonly scene: Phaser.Scene
   private readonly onRelease: (targets: Enemy[]) => void
+  private readonly spaceKey: Phaser.Input.Keyboard.Key
 
   constructor(scene: Phaser.Scene, onRelease: (targets: Enemy[]) => void) {
     this.scene = scene
     this.onRelease = onRelease
-    scene.input.on('pointerdown', this.handlePointerDown, this)
-    scene.input.on('pointerup', this.handlePointerUp, this)
+    this.spaceKey = scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+    this.spaceKey.on('down', this.handleFire, this)
   }
 
-  private handlePointerDown = () => {
-    this.holding = true
-    this.msSinceLastLock = LOCK_INTERVAL_MS // 押した瞬間に1体目をロックする
-  }
-
-  private handlePointerUp = () => {
-    this.holding = false
-    if (this.locked.length > 0) {
-      this.onRelease([...this.locked])
-    }
+  private handleFire = () => {
+    if (this.locked.length === 0) return
+    this.onRelease([...this.locked])
     this.clearLocks()
   }
 
@@ -39,7 +32,7 @@ export class LockOnSystem {
       marker.setPosition(enemy.x, enemy.y)
     }
 
-    if (!this.holding || this.locked.length >= capacity) return
+    if (this.locked.length >= capacity) return
 
     this.msSinceLastLock += deltaMs
     if (this.msSinceLastLock < LOCK_INTERVAL_MS) return
@@ -75,8 +68,7 @@ export class LockOnSystem {
   }
 
   destroy() {
-    this.scene.input.off('pointerdown', this.handlePointerDown, this)
-    this.scene.input.off('pointerup', this.handlePointerUp, this)
+    this.spaceKey.off('down', this.handleFire, this)
     this.clearLocks()
   }
 }
