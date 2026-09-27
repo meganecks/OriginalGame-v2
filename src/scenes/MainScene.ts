@@ -149,6 +149,7 @@ export class MainScene extends Phaser.Scene {
 
     this.lockOnSystem.update(deltaMs, this.enemies, this.player.x, this.player.y, this.progression.lockCapacity)
     this.waveSystem.update(deltaMs)
+    this.enemies = this.enemies.filter((e) => e.alive)
 
     for (const missile of this.missiles) {
       missile.update(dt)

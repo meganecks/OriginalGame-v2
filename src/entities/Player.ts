@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { PLAYER_BASE_SPEED } from '../config'
+import { PLAYER_BASE_SPEED, WORLD_SIZE } from '../config'
 import type { HeightMap } from '../terrain/HeightMap'
 
 export class Player {
@@ -33,8 +33,8 @@ export class Player {
     const speedMul = heightMap.speedMultiplierAtWorld(this.x, this.y)
     const speed = PLAYER_BASE_SPEED * speedMul
 
-    this.x += vx * speed * dt
-    this.y += vy * speed * dt
+    this.x = Phaser.Math.Clamp(this.x + vx * speed * dt, 0, WORLD_SIZE)
+    this.y = Phaser.Math.Clamp(this.y + vy * speed * dt, 0, WORLD_SIZE)
 
     this.view.setPosition(this.x, this.y)
   }

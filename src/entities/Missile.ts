@@ -29,8 +29,6 @@ export class Missile {
   private groundY: number
   private readonly launchX: number
   private readonly launchY: number
-  private readonly targetX: number
-  private readonly targetY: number
   private readonly duration: number
   private t = 0
   private spinAngle: number
@@ -59,8 +57,6 @@ export class Missile {
     this.launchY = y
     this.groundX = x
     this.groundY = y
-    this.targetX = target.x
-    this.targetY = target.y
     this.target = target
     this.damage = damage
     this.heightMap = heightMap
@@ -69,7 +65,7 @@ export class Missile {
     this.spinAngle = Math.random() * Math.PI * 2
     this.scene = scene
 
-    const distance = Math.hypot(this.targetX - x, this.targetY - y)
+    const distance = Math.hypot(target.x - x, target.y - y)
     this.duration = Math.max(MIN_DURATION, distance / MISSILE_SPEED)
 
     this.trail = scene.add.graphics()
@@ -99,9 +95,13 @@ export class Missile {
       return
     }
 
+    // 敵は動き続けるため、発射時の座標ではなく現在位置に向けて誘導する
+    const targetX = this.target.x
+    const targetY = this.target.y
+
     this.t = Math.min(1, this.t + dt / this.duration)
-    this.groundX = Phaser.Math.Linear(this.launchX, this.targetX, this.t)
-    this.groundY = Phaser.Math.Linear(this.launchY, this.targetY, this.t)
+    this.groundX = Phaser.Math.Linear(this.launchX, targetX, this.t)
+    this.groundY = Phaser.Math.Linear(this.launchY, targetY, this.t)
     const altitude = MISSILE_ARC_HEIGHT * 4 * this.t * (1 - this.t)
 
     if (this.t > MISSILE_CRASH_CHECK_T_MIN && this.t < MISSILE_CRASH_CHECK_T_MAX) {
@@ -113,7 +113,7 @@ export class Missile {
       }
     }
 
-    const distToTarget = Math.hypot(this.targetX - this.groundX, this.targetY - this.groundY)
+    const distToTarget = Math.hypot(targetX - this.groundX, targetY - this.groundY)
     if (this.t >= 1 || distToTarget <= HIT_DISTANCE) {
       this.onHit(this.target, this.damage)
       this.destroy()
@@ -127,8 +127,8 @@ export class Missile {
     // 下降中は機首下げになる。その向きを保ったまま、機体の長軸まわりに回っている
     // ように見せるため、幅(scaleX)だけをコサインで振ってやる横回転(スピン)を重ねる。
     const dAltitude = MISSILE_ARC_HEIGHT * 4 * (1 - 2 * this.t)
-    const velX = (this.targetX - this.launchX) / this.duration
-    const velY = (this.targetY - this.launchY) / this.duration - dAltitude / this.duration
+    const velX = (targetX - this.launchX) / this.duration
+    const velY = (targetY - this.launchY) / this.duration - dAltitude / this.duration
     const heading = Math.atan2(velY, velX)
 
     this.shadow.setPosition(this.groundX, this.groundY)
